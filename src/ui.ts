@@ -1,4 +1,10 @@
-import { CELLS, type Board, type Cell, type CellWithValue } from "./logic";
+import {
+  cellIsEmpty,
+  CELLS,
+  type Board,
+  type Cell,
+  type CellWithValue,
+} from "./logic";
 
 const CELL_SIZE = 100;
 const GAP = 10;
@@ -43,7 +49,7 @@ function renderCell(
   ctx: CanvasRenderingContext2D,
   cellSize: number,
 ) {
-  if ("value" in cell) {
+  if (!cellIsEmpty(cell)) {
     renderCellWithValue(cell, coordinates, ctx, cellSize);
   } else {
     renderEmptyCell(coordinates, ctx, cellSize);
