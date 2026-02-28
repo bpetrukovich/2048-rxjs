@@ -1,3 +1,5 @@
+import { scan, startWith, type Observable } from "rxjs";
+
 export const CELLS = 4;
 
 export type Board = Cell[][];
@@ -13,12 +15,12 @@ export function cellIsEmpty(cell: Cell): cell is null {
 }
 
 export function createBoard(cells: number): Board {
-  const board = Array.from({ length: cells }, () =>
+  let board = Array.from({ length: cells }, () =>
     Array.from({ length: cells }, () => null as Cell),
   );
 
-  board[0][0] = { value: 2 };
-  board[0][1] = { value: 2 };
+  board = generateRandomCell(board);
+  board = generateRandomCell(board);
   return board;
 }
 
@@ -57,6 +59,8 @@ export function handleCommand(command: Command, board: Board): Board {
       newBoard = moveCell(newBoard, trajectory, j, i);
     }
   }
+
+  newBoard = generateRandomCell(newBoard);
 
   return newBoard;
 }
@@ -203,4 +207,12 @@ export function generateRandomCell(board: Board): Board {
   } while (board[randomY][randomX] !== null);
 
   return boardSetCell(board, randomX, randomY, 2);
+}
+
+export function game(commandStream$: Observable<Command>): Observable<Board> {
+  const initialBoard = createBoard(CELLS);
+  return commandStream$.pipe(
+    scan((board, command) => handleCommand(command, board), initialBoard),
+    startWith(initialBoard),
+  );
 }
