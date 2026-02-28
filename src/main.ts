@@ -1,5 +1,5 @@
 import { commandStream$ } from "./commandStream";
-import { CELLS, createBoard, handleCommand } from "./logic";
+import { CELLS, createBoard, generateRandomCell, handleCommand } from "./logic";
 import { BOARD_SIZE, COLORS, renderBoard } from "./ui";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
@@ -17,5 +17,6 @@ renderBoard(board, ctx);
 commandStream$.subscribe((command) => {
   board = handleCommand(command, board);
   console.log(board);
+  board = generateRandomCell(board);
   renderBoard(board, ctx);
 });

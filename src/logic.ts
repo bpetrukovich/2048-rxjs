@@ -193,3 +193,14 @@ function commandToTrajectoryForCells(command: Command): Trajectory {
       };
   }
 }
+
+export function generateRandomCell(board: Board): Board {
+  let randomY: number;
+  let randomX: number;
+  do {
+    randomY = Math.floor(Math.random() * board.length);
+    randomX = Math.floor(Math.random() * board[0].length);
+  } while (board[randomY][randomX] !== null);
+
+  return boardSetCell(board, randomX, randomY, 2);
+}
