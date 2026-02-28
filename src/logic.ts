@@ -1,4 +1,4 @@
-import { filter, fromEvent, map, type Observable } from "rxjs";
+import { commandStream$ } from "./commandStream";
 
 export const CELLS = 4;
 
@@ -21,15 +21,12 @@ export function createBoard(): Board {
   return board;
 }
 
-const Commands = ["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"] as const;
-type Command = (typeof Commands)[number];
+export const Commands = [
+  "ArrowLeft",
+  "ArrowUp",
+  "ArrowRight",
+  "ArrowDown",
+] as const;
+export type Command = (typeof Commands)[number];
 
-const clicks$: Observable<Command> = fromEvent<KeyboardEvent>(
-  document,
-  "keydown",
-).pipe(
-  map((e) => e.key as Command),
-  filter((key) => Commands.includes(key)),
-);
-
-clicks$.subscribe((event) => console.log(event));
+commandStream$.subscribe((event) => console.log(event));
