@@ -69,8 +69,8 @@ function commandToTrajectoryForIteration(
       return {
         x: 1,
         y: 1,
-        initI: (size) => 0,
-        initJ: (size) => 0,
+        initI: (_size) => 0,
+        initJ: (_size) => 0,
         predicateI: (size, i) => i < size,
         predicateJ: (size, j) => j < size,
       };
@@ -78,8 +78,8 @@ function commandToTrajectoryForIteration(
       return {
         x: 1,
         y: 1,
-        initI: (size) => 0,
-        initJ: (size) => 0,
+        initI: (_size) => 0,
+        initJ: (_size) => 0,
         predicateI: (size, i) => i < size,
         predicateJ: (size, j) => j < size,
       };
@@ -87,18 +87,18 @@ function commandToTrajectoryForIteration(
       return {
         x: -1,
         y: 1,
-        initI: (size) => 0,
+        initI: (_size) => 0,
         initJ: (size) => size - 1,
         predicateI: (size, i) => i < size,
-        predicateJ: (size, j) => j >= 0,
+        predicateJ: (_size, j) => j >= 0,
       };
     case "ArrowDown":
       return {
         x: 1,
         y: -1,
         initI: (size) => size - 1,
-        initJ: (size) => 0,
-        predicateI: (size, i) => i >= 0,
+        initJ: (_size) => 0,
+        predicateI: (_size, i) => i >= 0,
         predicateJ: (size, j) => j < size,
       };
   }
