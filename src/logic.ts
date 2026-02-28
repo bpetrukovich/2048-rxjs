@@ -36,8 +36,8 @@ type Trajectory = {
 };
 
 type TrajectoryForIteration = {
-  x: -1 | 0 | 1;
-  y: -1 | 0 | 1;
+  x: -1 | 1;
+  y: -1 | 1;
   initI: (size: number) => number;
   initJ: (size: number) => number;
   predicateI: (size: number, i: number) => boolean;
