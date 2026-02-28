@@ -1,4 +1,4 @@
-import { scan, startWith, type Observable } from "rxjs";
+import { distinctUntilChanged, scan, startWith, type Observable } from "rxjs";
 
 export const CELLS = 4;
 
@@ -60,7 +60,9 @@ export function handleCommand(command: Command, board: Board): Board {
     }
   }
 
-  newBoard = generateRandomCell(newBoard);
+  if (JSON.stringify(newBoard) !== JSON.stringify(board)) {
+    return generateRandomCell(newBoard);
+  }
 
   return newBoard;
 }
@@ -199,6 +201,10 @@ function commandToTrajectoryForCells(command: Command): Trajectory {
 }
 
 export function generateRandomCell(board: Board): Board {
+  if (!board.flat().some((cell) => cell === null)) {
+    return board;
+  }
+
   let randomY: number;
   let randomX: number;
   do {
@@ -213,6 +219,9 @@ export function game(commandStream$: Observable<Command>): Observable<Board> {
   const initialBoard = createBoard(CELLS);
   return commandStream$.pipe(
     scan((board, command) => handleCommand(command, board), initialBoard),
+    distinctUntilChanged(
+      (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
+    ),
     startWith(initialBoard),
   );
 }
