@@ -1,5 +1,5 @@
 import { last, tap } from "rxjs";
-import { commandStream$ } from "./commandStream";
+import { createCommandStream } from "./commandStream";
 import { game } from "./logic";
 import { animationProgress, BOARD_SIZE, renderBoard } from "./ui";
 
@@ -8,6 +8,7 @@ canvas.width = BOARD_SIZE;
 canvas.height = BOARD_SIZE;
 
 const ctx = canvas.getContext("2d")!;
+const commandStream$ = createCommandStream();
 
 game(commandStream$).subscribe((state) => {
   console.log(state);
