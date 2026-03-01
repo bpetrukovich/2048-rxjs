@@ -15,6 +15,23 @@ export type Indexes = {
   y: number;
 };
 
+type Event =
+  | {
+      type: "merge";
+      source: Indexes;
+      target: Indexes;
+    }
+  | {
+      type: "move";
+      from: Indexes;
+      to: Indexes;
+    }
+  | {
+      type: "add";
+      indexes: Indexes;
+    }
+  | null;
+
 export function cellIsEmpty(cell: Cell): cell is null {
   return cell === null;
 }
@@ -24,8 +41,8 @@ export function createBoard(cells: number): Board {
     Array.from({ length: cells }, () => null as Cell),
   );
 
-  board = generateRandomCell(board);
-  board = generateRandomCell(board);
+  board = generateRandomCell(board).board;
+  board = generateRandomCell(board).board;
   return board;
 }
 
@@ -51,25 +68,48 @@ type TrajectoryForIteration = {
   predicateJ: (size: number, j: number) => boolean;
 };
 
-export function handleCommand(command: Command, board: Board): Board {
+export type CommandResult = {
+  prevBoard: Board;
+  board: Board;
+  events: Event[][];
+};
+
+export function handleCommand(command: Command, board: Board): CommandResult {
   const trajectory = commandToTrajectoryForCells(command);
   const ti = commandToTrajectoryForIteration(command);
 
   let newBoard = board;
+  const prevBoard = board;
+
+  let events = initEvents(board);
 
   const size = board.length;
 
   for (let i = ti.initI(size); ti.predicateI(size, i); i += ti.y) {
     for (let j = ti.initJ(size); ti.predicateJ(size, j); j += ti.x) {
-      newBoard = moveCell(newBoard, trajectory, { x: j, y: i });
+      const res = moveCell(newBoard, trajectory, { x: j, y: i });
+      newBoard = res[0];
+      events[i][j] = res[1];
     }
   }
 
+  console.log(events);
+
   if (JSON.stringify(newBoard) !== JSON.stringify(board)) {
-    return generateRandomCell(newBoard);
+    const res = generateRandomCell(newBoard);
+    newBoard = res.board;
+    const newIndexes = res.newIndexes;
+    if (newIndexes) {
+      events[newIndexes.y][newIndexes.x] = {
+        type: "add",
+        indexes: newIndexes,
+      };
+    }
+
+    return { board: newBoard, events, prevBoard };
   }
 
-  return newBoard;
+  return { board: newBoard, events, prevBoard };
 }
 
 function commandToTrajectoryForIteration(
@@ -127,14 +167,20 @@ function boardClearCell(board: Board, { x, y }: Indexes): Board {
   );
 }
 
+function isIndexesEqual(a: Indexes, b: Indexes) {
+  return a.x === b.x && a.y === b.y;
+}
+
 function moveCell(
   board: Board,
   trajectory: Trajectory,
   indexes: Indexes,
-): Board {
+): [Board, Event | null] {
+  const initialIndexes = indexes;
+
   const cell = boardGetCell(board, indexes);
   if (cellIsEmpty(cell)) {
-    return board;
+    return [board, null];
   }
 
   while (true) {
@@ -143,7 +189,7 @@ function moveCell(
       y: indexes.y + trajectory.y,
     };
     if (!checkBoundaries(board, nextIndexes)) {
-      return board;
+      return [board, { type: "move", from: initialIndexes, to: indexes }];
     }
 
     const nextCell = boardGetCell(board, nextIndexes);
@@ -161,14 +207,23 @@ function moveCell(
       board = boardSetCell(board, nextIndexes, nextCell.value + cell.value);
       board = boardClearCell(board, indexes);
 
-      return board;
+      return [
+        board,
+        { type: "merge", source: initialIndexes, target: nextIndexes },
+      ];
     }
 
-    return board;
+    return [board, { type: "move", from: initialIndexes, to: indexes }];
   }
 }
 
-function boardGetCell(board: Board, { x, y }: Indexes): Cell {
+function initEvents(board: Board): Event[][] {
+  return Array.from({ length: board.length }, () =>
+    Array.from({ length: board[0].length }, () => null),
+  );
+}
+
+export function boardGetCell(board: Board, { x, y }: Indexes): Cell {
   if (!checkBoundaries(board, { x, y })) {
     throw new Error("Out of bounds");
   }
@@ -207,9 +262,12 @@ function commandToTrajectoryForCells(command: Command): Trajectory {
   }
 }
 
-export function generateRandomCell(board: Board): Board {
+export function generateRandomCell(board: Board): {
+  board: Board;
+  newIndexes: Indexes | null;
+} {
   if (!board.flat().some((cell) => cell === null)) {
-    return board;
+    return { board, newIndexes: null };
   }
 
   let randomIndexes: Indexes;
@@ -219,16 +277,29 @@ export function generateRandomCell(board: Board): Board {
     randomIndexes = { x: randomX, y: randomY };
   } while (boardGetCell(board, randomIndexes) !== null);
 
-  return boardSetCell(board, randomIndexes, 2);
+  return {
+    board: boardSetCell(board, randomIndexes, 2),
+    newIndexes: randomIndexes,
+  };
 }
 
-export function game(commandStream$: Observable<Command>): Observable<Board> {
+export function game(
+  commandStream$: Observable<Command>,
+): Observable<CommandResult> {
   const initialBoard = createBoard(CELLS);
   return commandStream$.pipe(
-    scan((board, command) => handleCommand(command, board), initialBoard),
+    scan((prev, command) => handleCommand(command, prev.board), {
+      board: initialBoard,
+      prevBoard: initialBoard,
+      events: initEvents(initialBoard),
+    }),
     distinctUntilChanged(
-      (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
+      (prev, curr) => JSON.stringify(prev.board) === JSON.stringify(curr.board),
     ),
-    startWith(initialBoard),
+    startWith({
+      board: initialBoard,
+      prevBoard: initialBoard,
+      events: initEvents(initialBoard),
+    }),
   );
 }
