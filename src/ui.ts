@@ -4,7 +4,7 @@ import {
   CELLS,
   type Board,
   type CellWithValue,
-  type CommandResult,
+  type GameState,
   type Indexes,
 } from "./logic";
 
@@ -28,7 +28,7 @@ export function animationProgress(): Observable<number> {
   const easeInOutQuad = (t: number) =>
     t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
-  const duration = 300;
+  const duration = 200;
 
   return animationFrames().pipe(
     map(({ elapsed }) => elapsed / duration),
@@ -39,7 +39,7 @@ export function animationProgress(): Observable<number> {
 }
 
 export function renderBoard(
-  state: CommandResult,
+  state: GameState,
   progress: number,
   ctx: CanvasRenderingContext2D,
 ) {
@@ -73,7 +73,7 @@ export function renderBoard(
           }
 
           if (!cellIsEmpty(newCell)) {
-            renderCell(newCell, newCoordia, ctx, CELL_SIZE);
+            appearCell(newCell, newCoordia, progress, ctx, CELL_SIZE);
           }
           break;
         case "move":

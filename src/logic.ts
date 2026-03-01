@@ -36,14 +36,20 @@ export function cellIsEmpty(cell: Cell): cell is null {
   return cell === null;
 }
 
-export function createBoard(cells: number): Board {
-  let board = Array.from({ length: cells }, () =>
+export function createInitialState(cells: number): GameState {
+  const prevBoard = createInitialBoard(cells);
+  let events = createInitialEvents(prevBoard);
+
+  let res = generateRandomCell({ board: prevBoard, events });
+  res = generateRandomCell({ board: res.board, events: res.events });
+
+  return { board: res.board, prevBoard, events: res.events };
+}
+
+function createInitialBoard(cells: number): Board {
+  return Array.from({ length: cells }, () =>
     Array.from({ length: cells }, () => null as Cell),
   );
-
-  board = generateRandomCell(board).board;
-  board = generateRandomCell(board).board;
-  return board;
 }
 
 export const Commands = [
@@ -68,20 +74,28 @@ type TrajectoryForIteration = {
   predicateJ: (size: number, j: number) => boolean;
 };
 
-export type CommandResult = {
+export type Events = Event[][];
+
+function setEvent(events: Events, indexes: Indexes, event: Event): Events {
+  return events.map((row, i) =>
+    row.map((cell, j) => (i === indexes.y && j === indexes.x ? event : cell)),
+  );
+}
+
+export type GameState = {
   prevBoard: Board;
   board: Board;
-  events: Event[][];
+  events: Events;
 };
 
-export function handleCommand(command: Command, board: Board): CommandResult {
+export function handleCommand(command: Command, board: Board): GameState {
   const trajectory = commandToTrajectoryForCells(command);
   const ti = commandToTrajectoryForIteration(command);
 
   let newBoard = board;
   const prevBoard = board;
 
-  let events = initEvents(board);
+  let events = createInitialEvents(board);
 
   const size = board.length;
 
@@ -96,17 +110,9 @@ export function handleCommand(command: Command, board: Board): CommandResult {
   console.log(events);
 
   if (JSON.stringify(newBoard) !== JSON.stringify(board)) {
-    const res = generateRandomCell(newBoard);
-    newBoard = res.board;
-    const newIndexes = res.newIndexes;
-    if (newIndexes) {
-      events[newIndexes.y][newIndexes.x] = {
-        type: "add",
-        indexes: newIndexes,
-      };
-    }
+    const res = generateRandomCell({ board: newBoard, events });
 
-    return { board: newBoard, events, prevBoard };
+    return { board: res.board, events: res.events, prevBoard };
   }
 
   return { board: newBoard, events, prevBoard };
@@ -167,10 +173,6 @@ function boardClearCell(board: Board, { x, y }: Indexes): Board {
   );
 }
 
-function isIndexesEqual(a: Indexes, b: Indexes) {
-  return a.x === b.x && a.y === b.y;
-}
-
 function moveCell(
   board: Board,
   trajectory: Trajectory,
@@ -217,7 +219,7 @@ function moveCell(
   }
 }
 
-function initEvents(board: Board): Event[][] {
+function createInitialEvents(board: Board): Events {
   return Array.from({ length: board.length }, () =>
     Array.from({ length: board[0].length }, () => null),
   );
@@ -262,12 +264,18 @@ function commandToTrajectoryForCells(command: Command): Trajectory {
   }
 }
 
-export function generateRandomCell(board: Board): {
+export function generateRandomCell({
+  board,
+  events,
+}: {
   board: Board;
-  newIndexes: Indexes | null;
+  events: Events;
+}): {
+  board: Board;
+  events: Events;
 } {
   if (!board.flat().some((cell) => cell === null)) {
-    return { board, newIndexes: null };
+    return { board, events };
   }
 
   let randomIndexes: Indexes;
@@ -279,27 +287,22 @@ export function generateRandomCell(board: Board): {
 
   return {
     board: boardSetCell(board, randomIndexes, 2),
-    newIndexes: randomIndexes,
+    events: setEvent(events, randomIndexes, {
+      type: "add",
+      indexes: randomIndexes,
+    }),
   };
 }
 
 export function game(
   commandStream$: Observable<Command>,
-): Observable<CommandResult> {
-  const initialBoard = createBoard(CELLS);
+): Observable<GameState> {
+  const initialState = createInitialState(CELLS);
   return commandStream$.pipe(
-    scan((prev, command) => handleCommand(command, prev.board), {
-      board: initialBoard,
-      prevBoard: initialBoard,
-      events: initEvents(initialBoard),
-    }),
+    scan((prev, command) => handleCommand(command, prev.board), initialState),
     distinctUntilChanged(
       (prev, curr) => JSON.stringify(prev.board) === JSON.stringify(curr.board),
     ),
-    startWith({
-      board: initialBoard,
-      prevBoard: initialBoard,
-      events: initEvents(initialBoard),
-    }),
+    startWith(initialState),
   );
 }
