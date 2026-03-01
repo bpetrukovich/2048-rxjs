@@ -10,6 +10,11 @@ export type CellWithValue = {
   value: number;
 };
 
+export type Indexes = {
+  x: number;
+  y: number;
+};
+
 export function cellIsEmpty(cell: Cell): cell is null {
   return cell === null;
 }
@@ -56,7 +61,7 @@ export function handleCommand(command: Command, board: Board): Board {
 
   for (let i = ti.initI(size); ti.predicateI(size, i); i += ti.y) {
     for (let j = ti.initJ(size); ti.predicateJ(size, j); j += ti.x) {
-      newBoard = moveCell(newBoard, trajectory, j, i);
+      newBoard = moveCell(newBoard, trajectory, { x: j, y: i });
     }
   }
 
@@ -110,18 +115,13 @@ function commandToTrajectoryForIteration(
   }
 }
 
-function boardSetCell(
-  board: Board,
-  x: number,
-  y: number,
-  value: number,
-): Board {
+function boardSetCell(board: Board, { x, y }: Indexes, value: number): Board {
   return board.map((row, i) =>
     row.map((cell, j) => (i === y && j === x ? { value } : cell)),
   );
 }
 
-function boardClearCell(board: Board, x: number, y: number): Board {
+function boardClearCell(board: Board, { x, y }: Indexes): Board {
   return board.map((row, i) =>
     row.map((cell, j) => (i === y && j === x ? null : cell)),
   );
@@ -130,36 +130,36 @@ function boardClearCell(board: Board, x: number, y: number): Board {
 function moveCell(
   board: Board,
   trajectory: Trajectory,
-  x: number,
-  y: number,
+  indexes: Indexes,
 ): Board {
-  const cell = board[y][x];
+  const cell = boardGetCell(board, indexes);
   if (cellIsEmpty(cell)) {
     return board;
   }
 
   while (true) {
-    const nextX = x + trajectory.x;
-    const nextY = y + trajectory.y;
-    if (!checkBoundaries(board, nextX, nextY)) {
+    const nextIndexes = {
+      x: indexes.x + trajectory.x,
+      y: indexes.y + trajectory.y,
+    };
+    if (!checkBoundaries(board, nextIndexes)) {
       return board;
     }
 
-    const nextCell = board[nextY][nextX];
+    const nextCell = boardGetCell(board, nextIndexes);
 
     if (cellIsEmpty(nextCell)) {
-      board = boardSetCell(board, nextX, nextY, cell.value);
-      board = boardClearCell(board, x, y);
+      board = boardSetCell(board, nextIndexes, cell.value);
+      board = boardClearCell(board, indexes);
 
-      x = nextX;
-      y = nextY;
+      indexes = nextIndexes;
 
       continue;
     }
 
     if (cell.value === nextCell.value) {
-      board = boardSetCell(board, nextX, nextY, nextCell.value + cell.value);
-      board = boardClearCell(board, x, y);
+      board = boardSetCell(board, nextIndexes, nextCell.value + cell.value);
+      board = boardClearCell(board, indexes);
 
       return board;
     }
@@ -168,7 +168,14 @@ function moveCell(
   }
 }
 
-function checkBoundaries(board: Board, x: number, y: number) {
+function boardGetCell(board: Board, { x, y }: Indexes): Cell {
+  if (!checkBoundaries(board, { x, y })) {
+    throw new Error("Out of bounds");
+  }
+  return board[y][x];
+}
+
+function checkBoundaries(board: Board, { x, y }: Indexes) {
   if (x < 0 || x >= board[0].length || y < 0 || y >= board.length) {
     return false;
   }
@@ -205,14 +212,14 @@ export function generateRandomCell(board: Board): Board {
     return board;
   }
 
-  let randomY: number;
-  let randomX: number;
+  let randomIndexes: Indexes;
   do {
-    randomY = Math.floor(Math.random() * board.length);
-    randomX = Math.floor(Math.random() * board[0].length);
-  } while (board[randomY][randomX] !== null);
+    const randomY = Math.floor(Math.random() * board.length);
+    const randomX = Math.floor(Math.random() * board[0].length);
+    randomIndexes = { x: randomX, y: randomY };
+  } while (boardGetCell(board, randomIndexes) !== null);
 
-  return boardSetCell(board, randomX, randomY, 2);
+  return boardSetCell(board, randomIndexes, 2);
 }
 
 export function game(commandStream$: Observable<Command>): Observable<Board> {
