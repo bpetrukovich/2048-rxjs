@@ -1,11 +1,16 @@
 import { animationFrames, endWith, map, Observable, takeWhile } from "rxjs";
 import {
+  boardGetCell,
   cellIsEmpty,
   CELLS,
+  getEvent,
+  type AddEvent,
   type Board,
   type CellWithValue,
   type GameState,
   type Indexes,
+  type MergeEvent,
+  type MoveEvent,
 } from "./logic";
 
 const CELL_SIZE = 100;
@@ -50,58 +55,63 @@ export function renderBoard(
   const events = state.events;
   cleanBoard(board, ctx);
 
+  const moveEvents: { event: MoveEvent; indexes: Indexes }[] = [];
+  const addEvents: { event: AddEvent; indexes: Indexes }[] = [];
+  const mergeEvents: { event: MergeEvent; indexes: Indexes }[] = [];
+
   for (let y = 0; y < CELLS; y++) {
     for (let x = 0; x < CELLS; x++) {
-      const cell = board[y][x];
-      let newCell = newBoard[y][x];
-      const event = events[y][x];
-      switch (event?.type) {
-        case "merge":
-          const { target, source } = event;
-          newCell = newBoard[target.y][target.x];
-          const coordina = getCoordinates(
-            source,
-            target,
-            progress,
-            CELL_SIZE,
-            GAP,
-          );
-
-          const newCoordia = calculateCellCoordinates(target, CELL_SIZE, GAP);
-          if (!cellIsEmpty(cell)) {
-            renderCell(cell, coordina, ctx, CELL_SIZE);
-          }
-
-          if (!cellIsEmpty(newCell)) {
-            appearCell(newCell, newCoordia, progress, ctx, CELL_SIZE);
-          }
-          break;
-        case "move":
-          const { from, to } = event;
-          const coordinat = getCoordinates(from, to, progress, CELL_SIZE, GAP);
-          if (!cellIsEmpty(cell)) {
-            renderCell(cell, coordinat, ctx, CELL_SIZE);
-          }
-          break;
-        case "add":
-          const coordinate = calculateCellCoordinates({ x, y }, CELL_SIZE, GAP);
-          if (!cellIsEmpty(newCell)) {
-            appearCell(newCell, coordinate, progress, ctx, CELL_SIZE);
-          }
-          break;
-        case null:
-          const coordinates = calculateCellCoordinates(
-            { x, y },
-            CELL_SIZE,
-            GAP,
-          );
-          if (!cellIsEmpty(newCell)) {
-            renderCell(newCell, coordinates, ctx, CELL_SIZE);
-          }
-          break;
+      const event = getEvent(events, { x, y });
+      if (event) {
+        switch (event.type) {
+          case "merge":
+            mergeEvents.push({ event, indexes: { x, y } });
+            break;
+          case "move":
+            moveEvents.push({ event, indexes: { x, y } });
+            break;
+          case "add":
+            addEvents.push({ event, indexes: { x, y } });
+            break;
+          case null:
+            break;
+        }
       }
     }
   }
+
+  moveEvents.forEach(({ event, indexes }) => {
+    const cell = boardGetCell(board, indexes);
+    const { from, to } = event;
+    const coordinat = getCoordinates(from, to, progress, CELL_SIZE, GAP);
+    if (!cellIsEmpty(cell)) {
+      renderCell(cell, coordinat, ctx, CELL_SIZE);
+    }
+  });
+  addEvents.forEach(({ indexes }) => {
+    let newCell = boardGetCell(newBoard, indexes);
+    const coordinate = calculateCellCoordinates(indexes, CELL_SIZE, GAP);
+    if (!cellIsEmpty(newCell)) {
+      appearCell(newCell, coordinate, progress, ctx, CELL_SIZE);
+    }
+  });
+  mergeEvents.forEach(({ event, indexes }) => {
+    const cell = boardGetCell(board, indexes);
+    let newCell = boardGetCell(newBoard, indexes);
+
+    const { target, source } = event;
+    newCell = newBoard[target.y][target.x];
+    const coordina = getCoordinates(source, target, progress, CELL_SIZE, GAP);
+
+    const newCoordia = calculateCellCoordinates(target, CELL_SIZE, GAP);
+    if (!cellIsEmpty(cell)) {
+      renderCell(cell, coordina, ctx, CELL_SIZE);
+    }
+
+    if (!cellIsEmpty(newCell)) {
+      appearCell(newCell, newCoordia, progress, ctx, CELL_SIZE);
+    }
+  });
 }
 
 function getCoordinates(

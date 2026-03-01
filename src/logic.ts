@@ -15,22 +15,24 @@ export type Indexes = {
   y: number;
 };
 
-type Event =
-  | {
-      type: "merge";
-      source: Indexes;
-      target: Indexes;
-    }
-  | {
-      type: "move";
-      from: Indexes;
-      to: Indexes;
-    }
-  | {
-      type: "add";
-      indexes: Indexes;
-    }
-  | null;
+export type MergeEvent = {
+  type: "merge";
+  source: Indexes;
+  target: Indexes;
+};
+
+export type MoveEvent = {
+  type: "move";
+  from: Indexes;
+  to: Indexes;
+};
+
+export type AddEvent = {
+  type: "add";
+  indexes: Indexes;
+};
+
+export type Event = MergeEvent | MoveEvent | AddEvent | null;
 
 export function cellIsEmpty(cell: Cell): cell is null {
   return cell === null;
@@ -230,6 +232,10 @@ export function boardGetCell(board: Board, { x, y }: Indexes): Cell {
     throw new Error("Out of bounds");
   }
   return board[y][x];
+}
+
+export function getEvent(events: Events, indexes: Indexes): Event {
+  return events[indexes.y][indexes.x];
 }
 
 function checkBoundaries(board: Board, { x, y }: Indexes) {
