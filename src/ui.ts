@@ -1,10 +1,4 @@
-import {
-  cellIsEmpty,
-  CELLS,
-  type Board,
-  type Cell,
-  type CellWithValue,
-} from "./logic";
+import { cellIsEmpty, CELLS, type Board, type CellWithValue } from "./logic";
 
 const CELL_SIZE = 100;
 const GAP = 10;
@@ -24,9 +18,18 @@ type Coordinates = {
 
 export function renderBoard(board: Board, ctx: CanvasRenderingContext2D) {
   board.forEach((row, y) => {
+    row.forEach((_, x) => {
+      const coordinates = calculateCellCoordinates(x, y, CELL_SIZE, GAP);
+      renderEmptyCell(coordinates, ctx, CELL_SIZE);
+    });
+  });
+
+  board.forEach((row, y) => {
     row.forEach((cell, x) => {
       const coordinates = calculateCellCoordinates(x, y, CELL_SIZE, GAP);
-      renderCell(cell, coordinates, ctx, CELL_SIZE);
+      if (!cellIsEmpty(cell)) {
+        renderCell(cell, coordinates, ctx, CELL_SIZE);
+      }
     });
   });
 }
@@ -44,19 +47,6 @@ function calculateCellCoordinates(
 }
 
 function renderCell(
-  cell: Cell,
-  coordinates: Coordinates,
-  ctx: CanvasRenderingContext2D,
-  cellSize: number,
-) {
-  if (!cellIsEmpty(cell)) {
-    renderCellWithValue(cell, coordinates, ctx, cellSize);
-  } else {
-    renderEmptyCell(coordinates, ctx, cellSize);
-  }
-}
-
-function renderCellWithValue(
   cell: CellWithValue,
   coordinates: Coordinates,
   ctx: CanvasRenderingContext2D,
