@@ -8,7 +8,6 @@ import {
   type CellWithValue,
   type GameState,
   type Indexes,
-  type MergeEvent,
   type MoveEvent,
 } from "./logic";
 
@@ -101,22 +100,17 @@ export function renderBoard(
   progress: number,
   ctx: CanvasRenderingContext2D,
 ) {
-  const board = state.prevBoard;
-  const newBoard = state.board;
-  const events = state.events.flat(2);
-  cleanBoard(board, ctx);
+  const board = state.board;
+  const events = state.events;
+  cleanBoard(board.length, ctx);
 
   const moveEvents: MoveEvent[] = events.filter(
     (event) => event.type === "move",
   );
   const addEvents: AddEvent[] = events.filter((event) => event.type === "add");
-  const mergeEvents: MergeEvent[] = events.filter(
-    (event) => event.type === "merge",
-  );
 
   moveEvents.forEach((event) => {
-    const { from, to } = event;
-    const cell = boardGetCell(board, from);
+    const { from, to, cell } = event;
     const coordinates = getCoordinates(from, to, progress, CELL_SIZE, GAP);
     if (!cellIsEmpty(cell)) {
       renderCell(cell, coordinates, ctx, CELL_SIZE);
@@ -124,34 +118,10 @@ export function renderBoard(
   });
   addEvents.forEach((event) => {
     const { indexes } = event;
-    let newCell = boardGetCell(newBoard, indexes);
+    let newCell = boardGetCell(board, indexes);
     const coordinates = calculateCellCoordinates(indexes, CELL_SIZE, GAP);
     if (!cellIsEmpty(newCell)) {
       appearCell(newCell, coordinates, progress, ctx, CELL_SIZE);
-    }
-  });
-  mergeEvents.forEach((event) => {
-    const { target, source } = event;
-
-    const cell = boardGetCell(board, source);
-    let newCell = boardGetCell(newBoard, target);
-
-    newCell = newBoard[target.y][target.x];
-    const coordinates = getCoordinates(
-      source,
-      target,
-      progress,
-      CELL_SIZE,
-      GAP,
-    );
-
-    const newCoordinates = calculateCellCoordinates(target, CELL_SIZE, GAP);
-    if (!cellIsEmpty(cell)) {
-      renderCell(cell, coordinates, ctx, CELL_SIZE);
-    }
-
-    if (!cellIsEmpty(newCell)) {
-      appearCell(newCell, newCoordinates, progress, ctx, CELL_SIZE);
     }
   });
 }
@@ -175,7 +145,7 @@ function getCoordinates(
 }
 
 export function renderBoardDepr(board: Board, ctx: CanvasRenderingContext2D) {
-  cleanBoard(board, ctx);
+  cleanBoard(board.length, ctx);
 
   board.forEach((row, y) => {
     row.forEach((cell, x) => {
@@ -187,15 +157,15 @@ export function renderBoardDepr(board: Board, ctx: CanvasRenderingContext2D) {
   });
 }
 
-export function cleanBoard(board: Board, ctx: CanvasRenderingContext2D) {
+export function cleanBoard(size: number, ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = COLORS.BG;
   ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
-  board.forEach((row, y) => {
-    row.forEach((_, x) => {
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
       const coordinates = calculateCellCoordinates({ x, y }, CELL_SIZE, GAP);
       renderEmptyCell(coordinates, ctx, CELL_SIZE);
-    });
-  });
+    }
+  }
 }
 
 function calculateCellCoordinates(

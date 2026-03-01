@@ -15,24 +15,20 @@ export type Indexes = {
   y: number;
 };
 
-export type MergeEvent = {
-  type: "merge";
-  source: Indexes;
-  target: Indexes;
-};
-
 export type MoveEvent = {
   type: "move";
   from: Indexes;
   to: Indexes;
+  cell: CellWithValue;
 };
 
 export type AddEvent = {
   type: "add";
   indexes: Indexes;
+  cell: CellWithValue;
 };
 
-export type Event = MergeEvent | MoveEvent | AddEvent;
+export type Event = MoveEvent | AddEvent;
 
 export function cellIsEmpty(cell: Cell): cell is null {
   return cell === null;
@@ -40,7 +36,7 @@ export function cellIsEmpty(cell: Cell): cell is null {
 
 export function createInitialState(cells: number): GameState {
   const prevBoard = createInitialBoard(cells);
-  let events = createInitialEvents(prevBoard);
+  let events: Event[] = [];
 
   let res = generateRandomCell({ board: prevBoard, events });
   res = generateRandomCell({ board: res.board, events: res.events });
@@ -76,20 +72,14 @@ type TrajectoryForIteration = {
   predicateJ: (size: number, j: number) => boolean;
 };
 
-export type Events = Event[][][];
-
-function addEvent(events: Events, indexes: Indexes, event: Event): Events {
-  return events.map((row, i) =>
-    row.map((events, j) =>
-      i === indexes.y && j === indexes.x ? [...events, event] : events,
-    ),
-  );
+function addEvents(events: Event[], newEvents: Event[]): Event[] {
+  return [...events, ...newEvents];
 }
 
 export type GameState = {
   prevBoard: Board;
   board: Board;
-  events: Events;
+  events: Event[];
 };
 
 export function handleCommand(command: Command, board: Board): GameState {
@@ -99,7 +89,7 @@ export function handleCommand(command: Command, board: Board): GameState {
   let newBoard = board;
   const prevBoard = board;
 
-  let events = createInitialEvents(board);
+  let events: Event[] = [];
 
   const size = board.length;
 
@@ -108,7 +98,7 @@ export function handleCommand(command: Command, board: Board): GameState {
       const res = moveCell(newBoard, trajectory, { x: j, y: i });
       newBoard = res[0];
       if (res[1]) {
-        events = addEvent(events, { x: j, y: i }, res[1]);
+        events = addEvents(events, res[1]);
       }
     }
   }
@@ -181,12 +171,12 @@ function moveCell(
   board: Board,
   trajectory: Trajectory,
   indexes: Indexes,
-): [Board, Event | null] {
+): [Board, Event[]] {
   const initialIndexes = indexes;
 
   const cell = boardGetCell(board, indexes);
   if (cellIsEmpty(cell)) {
-    return [board, null];
+    return [board, []];
   }
 
   while (true) {
@@ -195,7 +185,17 @@ function moveCell(
       y: indexes.y + trajectory.y,
     };
     if (!checkBoundaries(board, nextIndexes)) {
-      return [board, { type: "move", from: initialIndexes, to: indexes }];
+      return [
+        board,
+        [
+          {
+            type: "move",
+            from: initialIndexes,
+            to: indexes,
+            cell,
+          },
+        ],
+      ];
     }
 
     const nextCell = boardGetCell(board, nextIndexes);
@@ -215,18 +215,19 @@ function moveCell(
 
       return [
         board,
-        { type: "merge", source: initialIndexes, target: nextIndexes },
+        [
+          { type: "move", from: initialIndexes, to: nextIndexes, cell },
+          {
+            type: "add",
+            cell: boardGetCell(board, nextIndexes) as CellWithValue,
+            indexes: nextIndexes,
+          },
+        ],
       ];
     }
 
-    return [board, { type: "move", from: initialIndexes, to: indexes }];
+    return [board, [{ type: "move", from: initialIndexes, to: indexes, cell }]];
   }
-}
-
-function createInitialEvents(board: Board): Events {
-  return Array.from({ length: board.length }, () =>
-    Array.from({ length: board[0].length }, () => []),
-  );
 }
 
 export function boardGetCell(board: Board, { x, y }: Indexes): Cell {
@@ -234,10 +235,6 @@ export function boardGetCell(board: Board, { x, y }: Indexes): Cell {
     throw new Error("Out of bounds");
   }
   return board[y][x];
-}
-
-export function getEvent(events: Events, indexes: Indexes): Event[] {
-  return events[indexes.y][indexes.x];
 }
 
 function checkBoundaries(board: Board, { x, y }: Indexes) {
@@ -277,10 +274,10 @@ export function generateRandomCell({
   events,
 }: {
   board: Board;
-  events: Events;
+  events: Event[];
 }): {
   board: Board;
-  events: Events;
+  events: Event[];
 } {
   if (!board.flat().some((cell) => cell === null)) {
     return { board, events };
@@ -295,10 +292,13 @@ export function generateRandomCell({
 
   return {
     board: boardSetCell(board, randomIndexes, 2),
-    events: addEvent(events, randomIndexes, {
-      type: "add",
-      indexes: randomIndexes,
-    }),
+    events: addEvents(events, [
+      {
+        type: "add",
+        indexes: randomIndexes,
+        cell: boardGetCell(board, randomIndexes) as CellWithValue,
+      },
+    ]),
   };
 }
 
