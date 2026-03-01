@@ -4,7 +4,6 @@ import type { AddEvent, MoveEvent } from "./event";
 import {
   boardGetCell,
   cellIsEmpty,
-  type Board,
   type CellWithValue,
   type Indexes,
 } from "./board";
@@ -109,7 +108,13 @@ export function renderBoard(
 
   moveEvents.forEach((event) => {
     const { from, to, cell } = event;
-    const coordinates = getCoordinates(from, to, progress, CELL_SIZE, GAP);
+    const coordinates = calculateAnimatingCoordinates(
+      from,
+      to,
+      progress,
+      CELL_SIZE,
+      GAP,
+    );
     if (!cellIsEmpty(cell)) {
       renderCell(cell, coordinates, ctx, CELL_SIZE);
     }
@@ -124,7 +129,7 @@ export function renderBoard(
   });
 }
 
-function getCoordinates(
+function calculateAnimatingCoordinates(
   from: Indexes,
   to: Indexes,
   progress: number,
