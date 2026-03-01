@@ -35,13 +35,13 @@ export function cellIsEmpty(cell: Cell): cell is null {
 }
 
 export function createInitialState(cells: number): GameState {
-  const prevBoard = createInitialBoard(cells);
+  const board = createInitialBoard(cells);
   let events: Event[] = [];
 
-  let res = generateRandomCell({ board: prevBoard, events });
+  let res = generateRandomCell({ board, events });
   res = generateRandomCell({ board: res.board, events: res.events });
 
-  return { board: res.board, prevBoard, events: res.events };
+  return { board: res.board, events: res.events };
 }
 
 function createInitialBoard(cells: number): Board {
@@ -77,7 +77,6 @@ function addEvents(events: Event[], newEvents: Event[]): Event[] {
 }
 
 export type GameState = {
-  prevBoard: Board;
   board: Board;
   events: Event[];
 };
@@ -87,7 +86,6 @@ export function handleCommand(command: Command, board: Board): GameState {
   const ti = commandToTrajectoryForIteration(command);
 
   let newBoard = board;
-  const prevBoard = board;
 
   let events: Event[] = [];
 
@@ -106,10 +104,10 @@ export function handleCommand(command: Command, board: Board): GameState {
   if (JSON.stringify(newBoard) !== JSON.stringify(board)) {
     const res = generateRandomCell({ board: newBoard, events });
 
-    return { board: res.board, events: res.events, prevBoard };
+    return { board: res.board, events: res.events };
   }
 
-  return { board: newBoard, events, prevBoard };
+  return { board: newBoard, events };
 }
 
 function commandToTrajectoryForIteration(
