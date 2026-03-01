@@ -117,7 +117,7 @@ export function renderBoard(
   addEvents.forEach((event) => {
     const { indexes } = event;
     let newCell = boardGetCell(board, indexes);
-    const coordinates = calculateCellCoordinates(indexes, CELL_SIZE, GAP);
+    const coordinates = calculateCellCenterCoordinates(indexes, CELL_SIZE, GAP);
     if (!cellIsEmpty(newCell)) {
       appearCell(newCell, coordinates, progress, ctx, CELL_SIZE);
     }
@@ -131,8 +131,8 @@ function getCoordinates(
   cellSize: number,
   gap: number,
 ) {
-  const fromCoordinates = calculateCellCoordinates(from, cellSize, gap);
-  const toCoordinates = calculateCellCoordinates(to, cellSize, gap);
+  const fromCoordinates = calculateCellCenterCoordinates(from, cellSize, gap);
+  const toCoordinates = calculateCellCenterCoordinates(to, cellSize, gap);
 
   const x =
     fromCoordinates.x + (toCoordinates.x - fromCoordinates.x) * progress;
@@ -142,39 +142,28 @@ function getCoordinates(
   return { x, y };
 }
 
-export function renderBoardDepr(board: Board, ctx: CanvasRenderingContext2D) {
-  cleanBoard(board.length, ctx);
-
-  board.forEach((row, y) => {
-    row.forEach((cell, x) => {
-      const coordinates = calculateCellCoordinates({ x, y }, CELL_SIZE, GAP);
-      if (!cellIsEmpty(cell)) {
-        renderCell(cell, coordinates, ctx, CELL_SIZE);
-      }
-    });
-  });
-}
-
-export function cleanBoard(size: number, ctx: CanvasRenderingContext2D) {
+function cleanBoard(size: number, ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = COLORS.BG;
   ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const coordinates = calculateCellCoordinates({ x, y }, CELL_SIZE, GAP);
+      const coordinates = calculateCellCenterCoordinates(
+        { x, y },
+        CELL_SIZE,
+        GAP,
+      );
       renderEmptyCell(coordinates, ctx, CELL_SIZE);
     }
   }
 }
 
-function calculateCellCoordinates(
-  { x, y }: Indexes,
+function renderEmptyCell(
+  coordinates: Coordinates,
+  ctx: CanvasRenderingContext2D,
   cellSize: number,
-  gap: number,
-): Coordinates {
-  return {
-    x: x * (cellSize + gap) + gap,
-    y: y * (cellSize + gap) + gap,
-  };
+) {
+  ctx.fillStyle = COLORS.BG_EMPTY;
+  fillSquareFromCenter(ctx, coordinates, cellSize);
 }
 
 function appearCell(
@@ -185,23 +174,12 @@ function appearCell(
   cellSize: number,
 ) {
   ctx.fillStyle = getBGColor(cell.value);
-  fillRectFromCenter(
-    ctx,
-    coordinates.x + cellSize / 2,
-    coordinates.y + cellSize / 2,
-    cellSize * progress,
-    cellSize * progress,
-  );
+  fillSquareFromCenter(ctx, coordinates, cellSize * progress);
 
-  ctx.fillStyle = getTextColor(cell.value);
-  ctx.font = `bold ${(cellSize / 2.5) * progress}px Tahoma`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(
-    cell.value.toString(),
-    coordinates.x + cellSize / 2,
-    coordinates.y + cellSize / 2 + cellSize / 30,
-  );
+  renderTextForCell(cell, ctx, (cellSize / 2.5) * progress, {
+    x: coordinates.x,
+    y: coordinates.y + cellSize / 30,
+  });
 }
 
 function getBGColor(value: number): string {
@@ -219,33 +197,42 @@ function renderCell(
   cellSize: number,
 ) {
   ctx.fillStyle = getBGColor(cell.value);
-  ctx.fillRect(coordinates.x, coordinates.y, cellSize, cellSize);
+  fillSquareFromCenter(ctx, coordinates, cellSize);
 
+  renderTextForCell(cell, ctx, cellSize / 2.5, {
+    x: coordinates.x,
+    y: coordinates.y + cellSize / 30,
+  });
+}
+
+function renderTextForCell(
+  cell: CellWithValue,
+  ctx: CanvasRenderingContext2D,
+  textSize: number,
+  centerCoordinates: Coordinates,
+) {
   ctx.fillStyle = getTextColor(cell.value);
-  ctx.font = `bold ${cellSize / 2.5}px Tahoma`;
+  ctx.font = `bold ${textSize}px Tahoma`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(
-    cell.value.toString(),
-    coordinates.x + cellSize / 2,
-    coordinates.y + cellSize / 2 + cellSize / 30,
-  );
-}
-function fillRectFromCenter(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  w: number,
-  h: number,
-) {
-  ctx.fillRect(cx - w / 2, cy - h / 2, w, h);
+  ctx.fillText(cell.value.toString(), centerCoordinates.x, centerCoordinates.y);
 }
 
-function renderEmptyCell(
-  coordinates: Coordinates,
+function fillSquareFromCenter(
   ctx: CanvasRenderingContext2D,
-  cellSize: number,
+  { x, y }: Coordinates,
+  size: number,
 ) {
-  ctx.fillStyle = COLORS.BG_EMPTY;
-  ctx.fillRect(coordinates.x, coordinates.y, cellSize, cellSize);
+  ctx.fillRect(x - size / 2, y - size / 2, size, size);
+}
+
+function calculateCellCenterCoordinates(
+  { x, y }: Indexes,
+  cellSize: number,
+  gap: number,
+): Coordinates {
+  return {
+    x: x * (cellSize + gap) + gap + cellSize / 2,
+    y: y * (cellSize + gap) + gap + cellSize / 2,
+  };
 }
