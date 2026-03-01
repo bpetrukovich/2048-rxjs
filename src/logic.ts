@@ -7,6 +7,7 @@ import {
   checkBoundaries,
   createInitialBoard,
   type Board,
+  type Cell,
   type Indexes,
 } from "./board";
 import { addEvents, type GameEvent } from "./event";
@@ -220,25 +221,33 @@ export function generateRandomCell({
   board: Board;
   events: GameEvent[];
 } {
-  if (!board.flat().some((cell) => cell === null)) {
+  const emptyCells = board
+    .map((row, y) =>
+      row
+        .map((cell: Cell, x: number): { cell: Cell; indexes: Indexes } => ({
+          cell,
+          indexes: { x, y },
+        }))
+        .filter(({ cell }) => cell === null),
+    )
+    .flat();
+
+  if (!emptyCells.length) {
     return { board, events };
   }
 
-  let randomIndexes: Indexes;
-  do {
-    const randomY = Math.floor(Math.random() * board.length);
-    const randomX = Math.floor(Math.random() * board[0].length);
-    randomIndexes = { x: randomX, y: randomY };
-  } while (boardGetCell(board, randomIndexes) !== null);
+  const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
 
-  const res = boardSetCell(board, randomIndexes, 2);
+  const value = Math.random() > 0.9 ? 4 : 2;
+
+  const res = boardSetCell(board, randomCell.indexes, value);
 
   return {
     board: res.board,
     events: addEvents(events, [
       {
         type: "add",
-        indexes: randomIndexes,
+        indexes: randomCell.indexes,
         cell: res.newCell,
       },
     ]),
