@@ -32,7 +32,7 @@ export type AddEvent = {
   indexes: Indexes;
 };
 
-export type Event = MergeEvent | MoveEvent | AddEvent | null;
+export type Event = MergeEvent | MoveEvent | AddEvent;
 
 export function cellIsEmpty(cell: Cell): cell is null {
   return cell === null;
@@ -76,9 +76,13 @@ type TrajectoryForIteration = {
   predicateJ: (size: number, j: number) => boolean;
 };
 
-export type Events = Event[][];
+export type Events = (Event | null)[][];
 
-function setEvent(events: Events, indexes: Indexes, event: Event): Events {
+function setEvent(
+  events: Events,
+  indexes: Indexes,
+  event: Event | null,
+): Events {
   return events.map((row, i) =>
     row.map((cell, j) => (i === indexes.y && j === indexes.x ? event : cell)),
   );
@@ -105,7 +109,7 @@ export function handleCommand(command: Command, board: Board): GameState {
     for (let j = ti.initJ(size); ti.predicateJ(size, j); j += ti.x) {
       const res = moveCell(newBoard, trajectory, { x: j, y: i });
       newBoard = res[0];
-      events[i][j] = res[1];
+      events = setEvent(events, { x: j, y: i }, res[1]);
     }
   }
 
@@ -234,7 +238,7 @@ export function boardGetCell(board: Board, { x, y }: Indexes): Cell {
   return board[y][x];
 }
 
-export function getEvent(events: Events, indexes: Indexes): Event {
+export function getEvent(events: Events, indexes: Indexes): Event | null {
   return events[indexes.y][indexes.x];
 }
 

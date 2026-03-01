@@ -48,8 +48,6 @@ export function renderBoard(
   progress: number,
   ctx: CanvasRenderingContext2D,
 ) {
-  ctx.fillStyle = COLORS.BG;
-  ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
   const board = state.prevBoard;
   const newBoard = state.board;
   const events = state.events;
@@ -72,8 +70,6 @@ export function renderBoard(
             break;
           case "add":
             addEvents.push({ event, indexes: { x, y } });
-            break;
-          case null:
             break;
         }
       }
@@ -146,6 +142,8 @@ export function renderBoardDepr(board: Board, ctx: CanvasRenderingContext2D) {
 }
 
 export function cleanBoard(board: Board, ctx: CanvasRenderingContext2D) {
+  ctx.fillStyle = COLORS.BG;
+  ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
   board.forEach((row, y) => {
     row.forEach((_, x) => {
       const coordinates = calculateCellCoordinates({ x, y }, CELL_SIZE, GAP);
