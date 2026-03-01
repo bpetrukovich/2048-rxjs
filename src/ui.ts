@@ -3,7 +3,6 @@ import {
   boardGetCell,
   cellIsEmpty,
   CELLS,
-  getEvent,
   type AddEvent,
   type Board,
   type CellWithValue,
@@ -50,33 +49,18 @@ export function renderBoard(
 ) {
   const board = state.prevBoard;
   const newBoard = state.board;
-  const events = state.events;
+  const events = state.events.flat(2);
   cleanBoard(board, ctx);
 
-  const moveEvents: { event: MoveEvent; indexes: Indexes }[] = [];
-  const addEvents: { event: AddEvent; indexes: Indexes }[] = [];
-  const mergeEvents: { event: MergeEvent; indexes: Indexes }[] = [];
+  const moveEvents: MoveEvent[] = events.filter(
+    (event) => event.type === "move",
+  );
+  const addEvents: AddEvent[] = events.filter((event) => event.type === "add");
+  const mergeEvents: MergeEvent[] = events.filter(
+    (event) => event.type === "merge",
+  );
 
-  for (let y = 0; y < CELLS; y++) {
-    for (let x = 0; x < CELLS; x++) {
-      const event = getEvent(events, { x, y });
-      if (event) {
-        switch (event.type) {
-          case "merge":
-            mergeEvents.push({ event, indexes: { x, y } });
-            break;
-          case "move":
-            moveEvents.push({ event, indexes: { x, y } });
-            break;
-          case "add":
-            addEvents.push({ event, indexes: { x, y } });
-            break;
-        }
-      }
-    }
-  }
-
-  moveEvents.forEach(({ event }) => {
+  moveEvents.forEach((event) => {
     const { from, to } = event;
     const cell = boardGetCell(board, from);
     const coordinates = getCoordinates(from, to, progress, CELL_SIZE, GAP);
@@ -84,7 +68,7 @@ export function renderBoard(
       renderCell(cell, coordinates, ctx, CELL_SIZE);
     }
   });
-  addEvents.forEach(({ event }) => {
+  addEvents.forEach((event) => {
     const { indexes } = event;
     let newCell = boardGetCell(newBoard, indexes);
     const coordinates = calculateCellCoordinates(indexes, CELL_SIZE, GAP);
@@ -92,7 +76,7 @@ export function renderBoard(
       appearCell(newCell, coordinates, progress, ctx, CELL_SIZE);
     }
   });
-  mergeEvents.forEach(({ event }) => {
+  mergeEvents.forEach((event) => {
     const { target, source } = event;
 
     const cell = boardGetCell(board, source);

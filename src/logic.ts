@@ -76,15 +76,13 @@ type TrajectoryForIteration = {
   predicateJ: (size: number, j: number) => boolean;
 };
 
-export type Events = (Event | null)[][];
+export type Events = Event[][][];
 
-function setEvent(
-  events: Events,
-  indexes: Indexes,
-  event: Event | null,
-): Events {
+function addEvent(events: Events, indexes: Indexes, event: Event): Events {
   return events.map((row, i) =>
-    row.map((cell, j) => (i === indexes.y && j === indexes.x ? event : cell)),
+    row.map((events, j) =>
+      i === indexes.y && j === indexes.x ? [...events, event] : events,
+    ),
   );
 }
 
@@ -109,7 +107,9 @@ export function handleCommand(command: Command, board: Board): GameState {
     for (let j = ti.initJ(size); ti.predicateJ(size, j); j += ti.x) {
       const res = moveCell(newBoard, trajectory, { x: j, y: i });
       newBoard = res[0];
-      events = setEvent(events, { x: j, y: i }, res[1]);
+      if (res[1]) {
+        events = addEvent(events, { x: j, y: i }, res[1]);
+      }
     }
   }
 
@@ -225,7 +225,7 @@ function moveCell(
 
 function createInitialEvents(board: Board): Events {
   return Array.from({ length: board.length }, () =>
-    Array.from({ length: board[0].length }, () => null),
+    Array.from({ length: board[0].length }, () => []),
   );
 }
 
@@ -236,7 +236,7 @@ export function boardGetCell(board: Board, { x, y }: Indexes): Cell {
   return board[y][x];
 }
 
-export function getEvent(events: Events, indexes: Indexes): Event | null {
+export function getEvent(events: Events, indexes: Indexes): Event[] {
   return events[indexes.y][indexes.x];
 }
 
@@ -295,7 +295,7 @@ export function generateRandomCell({
 
   return {
     board: boardSetCell(board, randomIndexes, 2),
-    events: setEvent(events, randomIndexes, {
+    events: addEvent(events, randomIndexes, {
       type: "add",
       indexes: randomIndexes,
     }),
