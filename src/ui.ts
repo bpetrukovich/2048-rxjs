@@ -16,11 +16,59 @@ const CELL_SIZE = 100;
 const GAP = 10;
 export const BOARD_SIZE = CELL_SIZE * CELLS + GAP * (CELLS + 1);
 
-export const COLORS = {
+export const COLORS: {
+  BG: string;
+  BG_EMPTY: string;
+  VALUES: { [key: number]: { BG: string; TEXT: string } };
+} = {
   BG: "#9c8b7c",
   BG_EMPTY: "#bdac97",
-  BG_FILLED: "#eee4da",
-  TEXT: "#756452",
+  VALUES: {
+    2: {
+      BG: "#eee4da",
+      TEXT: "#756452",
+    },
+    4: {
+      BG: "#ede0c8",
+      TEXT: "#756452",
+    },
+    8: {
+      BG: "#f2b179",
+      TEXT: "#ffffff",
+    },
+    16: {
+      BG: "#f59563",
+      TEXT: "#ffffff",
+    },
+    32: {
+      BG: "#f67c5f",
+      TEXT: "#ffffff",
+    },
+    64: {
+      BG: "#f65e3b",
+      TEXT: "#ffffff",
+    },
+    128: {
+      BG: "#edcf72",
+      TEXT: "#ffffff",
+    },
+    256: {
+      BG: "#edcc61",
+      TEXT: "#ffffff",
+    },
+    512: {
+      BG: "#edc850",
+      TEXT: "#ffffff",
+    },
+    1024: {
+      BG: "#edc53f",
+      TEXT: "#ffffff",
+    },
+    2048: {
+      BG: "#edc22e",
+      TEXT: "#ffffff",
+    },
+  },
 };
 
 type Coordinates = {
@@ -29,15 +77,21 @@ type Coordinates = {
 };
 
 export function animationProgress(): Observable<number> {
-  const easeInOutQuad = (t: number) =>
-    t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+  const easeFunction = (x: number) => {
+    const c4 = (2 * Math.PI) / 7.5;
+    return x === 0
+      ? 0
+      : x === 1
+        ? 1
+        : Math.pow(2, -12 * x) * Math.sin((x * 10 - 1.1) * c4) + 1;
+  };
 
-  const duration = 150;
+  const duration = 300;
 
   return animationFrames().pipe(
     map(({ elapsed }) => elapsed / duration),
     takeWhile((t) => t < 1),
-    map((t) => easeInOutQuad(t)),
+    map((t) => easeFunction(t)),
     endWith(1),
   );
 }
@@ -162,7 +216,7 @@ function appearCell(
   ctx: CanvasRenderingContext2D,
   cellSize: number,
 ) {
-  ctx.fillStyle = COLORS.BG_FILLED;
+  ctx.fillStyle = getBGColor(cell.value);
   fillRectFromCenter(
     ctx,
     coordinates.x + cellSize / 2,
@@ -171,7 +225,7 @@ function appearCell(
     cellSize * progress,
   );
 
-  ctx.fillStyle = COLORS.TEXT;
+  ctx.fillStyle = getTextColor(cell.value);
   ctx.font = `bold ${(cellSize / 2.5) * progress}px Tahoma`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -182,16 +236,24 @@ function appearCell(
   );
 }
 
+function getBGColor(value: number): string {
+  return COLORS.VALUES[value].BG;
+}
+
+function getTextColor(value: number): string {
+  return COLORS.VALUES[value].TEXT;
+}
+
 function renderCell(
   cell: CellWithValue,
   coordinates: Coordinates,
   ctx: CanvasRenderingContext2D,
   cellSize: number,
 ) {
-  ctx.fillStyle = COLORS.BG_FILLED;
+  ctx.fillStyle = getBGColor(cell.value);
   ctx.fillRect(coordinates.x, coordinates.y, cellSize, cellSize);
 
-  ctx.fillStyle = COLORS.TEXT;
+  ctx.fillStyle = getTextColor(cell.value);
   ctx.font = `bold ${cellSize / 2.5}px Tahoma`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
