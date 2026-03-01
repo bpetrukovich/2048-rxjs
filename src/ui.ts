@@ -76,36 +76,44 @@ export function renderBoard(
     }
   }
 
-  moveEvents.forEach(({ event, indexes }) => {
-    const cell = boardGetCell(board, indexes);
+  moveEvents.forEach(({ event }) => {
     const { from, to } = event;
-    const coordinat = getCoordinates(from, to, progress, CELL_SIZE, GAP);
+    const cell = boardGetCell(board, from);
+    const coordinates = getCoordinates(from, to, progress, CELL_SIZE, GAP);
     if (!cellIsEmpty(cell)) {
-      renderCell(cell, coordinat, ctx, CELL_SIZE);
+      renderCell(cell, coordinates, ctx, CELL_SIZE);
     }
   });
-  addEvents.forEach(({ indexes }) => {
+  addEvents.forEach(({ event }) => {
+    const { indexes } = event;
     let newCell = boardGetCell(newBoard, indexes);
-    const coordinate = calculateCellCoordinates(indexes, CELL_SIZE, GAP);
+    const coordinates = calculateCellCoordinates(indexes, CELL_SIZE, GAP);
     if (!cellIsEmpty(newCell)) {
-      appearCell(newCell, coordinate, progress, ctx, CELL_SIZE);
+      appearCell(newCell, coordinates, progress, ctx, CELL_SIZE);
     }
   });
-  mergeEvents.forEach(({ event, indexes }) => {
-    const cell = boardGetCell(board, indexes);
-    let newCell = boardGetCell(newBoard, indexes);
-
+  mergeEvents.forEach(({ event }) => {
     const { target, source } = event;
-    newCell = newBoard[target.y][target.x];
-    const coordina = getCoordinates(source, target, progress, CELL_SIZE, GAP);
 
-    const newCoordia = calculateCellCoordinates(target, CELL_SIZE, GAP);
+    const cell = boardGetCell(board, source);
+    let newCell = boardGetCell(newBoard, target);
+
+    newCell = newBoard[target.y][target.x];
+    const coordinates = getCoordinates(
+      source,
+      target,
+      progress,
+      CELL_SIZE,
+      GAP,
+    );
+
+    const newCoordinates = calculateCellCoordinates(target, CELL_SIZE, GAP);
     if (!cellIsEmpty(cell)) {
-      renderCell(cell, coordina, ctx, CELL_SIZE);
+      renderCell(cell, coordinates, ctx, CELL_SIZE);
     }
 
     if (!cellIsEmpty(newCell)) {
-      appearCell(newCell, newCoordia, progress, ctx, CELL_SIZE);
+      appearCell(newCell, newCoordinates, progress, ctx, CELL_SIZE);
     }
   });
 }

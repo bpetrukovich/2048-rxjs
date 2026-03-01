@@ -113,8 +113,6 @@ export function handleCommand(command: Command, board: Board): GameState {
     }
   }
 
-  console.log(events);
-
   if (JSON.stringify(newBoard) !== JSON.stringify(board)) {
     const res = generateRandomCell({ board: newBoard, events });
 

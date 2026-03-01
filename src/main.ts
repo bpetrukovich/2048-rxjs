@@ -10,6 +10,7 @@ canvas.height = BOARD_SIZE;
 const ctx = canvas.getContext("2d")!;
 
 game(commandStream$).subscribe((state) => {
+  console.log(state);
   animationProgress()
     .pipe(
       tap((progress) => {
