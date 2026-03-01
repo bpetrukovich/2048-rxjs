@@ -1,5 +1,11 @@
 import { animationFrames, endWith, map, Observable, takeWhile } from "rxjs";
-import { cellIsEmpty, CELLS, type Board, type CellWithValue } from "./logic";
+import {
+  cellIsEmpty,
+  CELLS,
+  type Board,
+  type CellWithValue,
+  type Indexes,
+} from "./logic";
 
 const CELL_SIZE = 100;
 const GAP = 10;
@@ -36,7 +42,7 @@ export function renderBoard(board: Board, ctx: CanvasRenderingContext2D) {
 
   board.forEach((row, y) => {
     row.forEach((cell, x) => {
-      const coordinates = calculateCellCoordinates(x, y, CELL_SIZE, GAP);
+      const coordinates = calculateCellCoordinates({ x, y }, CELL_SIZE, GAP);
       if (!cellIsEmpty(cell)) {
         renderCell(cell, coordinates, ctx, CELL_SIZE);
       }
@@ -47,15 +53,14 @@ export function renderBoard(board: Board, ctx: CanvasRenderingContext2D) {
 export function cleanBoard(board: Board, ctx: CanvasRenderingContext2D) {
   board.forEach((row, y) => {
     row.forEach((_, x) => {
-      const coordinates = calculateCellCoordinates(x, y, CELL_SIZE, GAP);
+      const coordinates = calculateCellCoordinates({ x, y }, CELL_SIZE, GAP);
       renderEmptyCell(coordinates, ctx, CELL_SIZE);
     });
   });
 }
 
 function calculateCellCoordinates(
-  x: number,
-  y: number,
+  { x, y }: Indexes,
   cellSize: number,
   gap: number,
 ): Coordinates {
