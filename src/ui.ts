@@ -17,12 +17,7 @@ type Coordinates = {
 };
 
 export function renderBoard(board: Board, ctx: CanvasRenderingContext2D) {
-  board.forEach((row, y) => {
-    row.forEach((_, x) => {
-      const coordinates = calculateCellCoordinates(x, y, CELL_SIZE, GAP);
-      renderEmptyCell(coordinates, ctx, CELL_SIZE);
-    });
-  });
+  cleanBoard(board, ctx);
 
   board.forEach((row, y) => {
     row.forEach((cell, x) => {
@@ -30,6 +25,15 @@ export function renderBoard(board: Board, ctx: CanvasRenderingContext2D) {
       if (!cellIsEmpty(cell)) {
         renderCell(cell, coordinates, ctx, CELL_SIZE);
       }
+    });
+  });
+}
+
+export function cleanBoard(board: Board, ctx: CanvasRenderingContext2D) {
+  board.forEach((row, y) => {
+    row.forEach((_, x) => {
+      const coordinates = calculateCellCoordinates(x, y, CELL_SIZE, GAP);
+      renderEmptyCell(coordinates, ctx, CELL_SIZE);
     });
   });
 }
