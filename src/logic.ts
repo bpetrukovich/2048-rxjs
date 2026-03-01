@@ -1,53 +1,26 @@
 import { distinctUntilChanged, scan, startWith, type Observable } from "rxjs";
+import {
+  boardClearCell,
+  boardGetCell,
+  boardSetCell,
+  cellIsEmpty,
+  checkBoundaries,
+  createInitialBoard,
+  type Board,
+  type Indexes,
+} from "./board";
+import { addEvents, type GameEvent } from "./event";
 
 export const CELLS = 4;
 
-export type Board = Cell[][];
-
-export type Cell = CellWithValue | null;
-
-export type CellWithValue = {
-  value: number;
-};
-
-export type Indexes = {
-  x: number;
-  y: number;
-};
-
-export type MoveEvent = {
-  type: "move";
-  from: Indexes;
-  to: Indexes;
-  cell: CellWithValue;
-};
-
-export type AddEvent = {
-  type: "add";
-  indexes: Indexes;
-  cell: CellWithValue;
-};
-
-export type Event = MoveEvent | AddEvent;
-
-export function cellIsEmpty(cell: Cell): cell is null {
-  return cell === null;
-}
-
 export function createInitialState(cells: number): GameState {
   const board = createInitialBoard(cells);
-  let events: Event[] = [];
+  let events: GameEvent[] = [];
 
   let res = generateRandomCell({ board, events });
   res = generateRandomCell({ board: res.board, events: res.events });
 
   return { board: res.board, events: res.events };
-}
-
-function createInitialBoard(cells: number): Board {
-  return Array.from({ length: cells }, () =>
-    Array.from({ length: cells }, () => null as Cell),
-  );
 }
 
 export const Commands = [
@@ -72,13 +45,9 @@ type TrajectoryForIteration = {
   predicateJ: (size: number, j: number) => boolean;
 };
 
-function addEvents(events: Event[], newEvents: Event[]): Event[] {
-  return [...events, ...newEvents];
-}
-
 export type GameState = {
   board: Board;
-  events: Event[];
+  events: GameEvent[];
 };
 
 export function handleCommand(command: Command, board: Board): GameState {
@@ -87,7 +56,7 @@ export function handleCommand(command: Command, board: Board): GameState {
 
   let newBoard = board;
 
-  let events: Event[] = [];
+  let events: GameEvent[] = [];
 
   const size = board.length;
 
@@ -153,23 +122,11 @@ function commandToTrajectoryForIteration(
   }
 }
 
-function boardSetCell(board: Board, { x, y }: Indexes, value: number): Board {
-  return board.map((row, i) =>
-    row.map((cell, j) => (i === y && j === x ? { value } : cell)),
-  );
-}
-
-function boardClearCell(board: Board, { x, y }: Indexes): Board {
-  return board.map((row, i) =>
-    row.map((cell, j) => (i === y && j === x ? null : cell)),
-  );
-}
-
 function moveCell(
   board: Board,
   trajectory: Trajectory,
   indexes: Indexes,
-): [Board, Event[]] {
+): [Board, GameEvent[]] {
   const initialIndexes = indexes;
 
   const cell = boardGetCell(board, indexes);
@@ -199,8 +156,8 @@ function moveCell(
     const nextCell = boardGetCell(board, nextIndexes);
 
     if (cellIsEmpty(nextCell)) {
-      board = boardSetCell(board, nextIndexes, cell.value);
       board = boardClearCell(board, indexes);
+      board = boardSetCell(board, nextIndexes, cell.value).board;
 
       indexes = nextIndexes;
 
@@ -208,8 +165,8 @@ function moveCell(
     }
 
     if (cell.value === nextCell.value) {
-      board = boardSetCell(board, nextIndexes, nextCell.value + cell.value);
-      board = boardClearCell(board, indexes);
+      const res = boardSetCell(board, nextIndexes, nextCell.value + cell.value);
+      board = boardClearCell(res.board, indexes);
 
       return [
         board,
@@ -217,7 +174,7 @@ function moveCell(
           { type: "move", from: initialIndexes, to: nextIndexes, cell },
           {
             type: "add",
-            cell: boardGetCell(board, nextIndexes) as CellWithValue,
+            cell: res.newCell,
             indexes: nextIndexes,
           },
         ],
@@ -226,20 +183,6 @@ function moveCell(
 
     return [board, [{ type: "move", from: initialIndexes, to: indexes, cell }]];
   }
-}
-
-export function boardGetCell(board: Board, { x, y }: Indexes): Cell {
-  if (!checkBoundaries(board, { x, y })) {
-    throw new Error("Out of bounds");
-  }
-  return board[y][x];
-}
-
-function checkBoundaries(board: Board, { x, y }: Indexes) {
-  if (x < 0 || x >= board[0].length || y < 0 || y >= board.length) {
-    return false;
-  }
-  return true;
 }
 
 function commandToTrajectoryForCells(command: Command): Trajectory {
@@ -272,10 +215,10 @@ export function generateRandomCell({
   events,
 }: {
   board: Board;
-  events: Event[];
+  events: GameEvent[];
 }): {
   board: Board;
-  events: Event[];
+  events: GameEvent[];
 } {
   if (!board.flat().some((cell) => cell === null)) {
     return { board, events };
@@ -288,13 +231,15 @@ export function generateRandomCell({
     randomIndexes = { x: randomX, y: randomY };
   } while (boardGetCell(board, randomIndexes) !== null);
 
+  const res = boardSetCell(board, randomIndexes, 2);
+
   return {
-    board: boardSetCell(board, randomIndexes, 2),
+    board: res.board,
     events: addEvents(events, [
       {
         type: "add",
         indexes: randomIndexes,
-        cell: boardGetCell(board, randomIndexes) as CellWithValue,
+        cell: res.newCell,
       },
     ]),
   };

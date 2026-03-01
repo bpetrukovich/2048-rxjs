@@ -1,15 +1,13 @@
 import { animationFrames, endWith, map, Observable, takeWhile } from "rxjs";
+import { CELLS, type GameState } from "./logic";
+import type { AddEvent, MoveEvent } from "./event";
 import {
   boardGetCell,
   cellIsEmpty,
-  CELLS,
-  type AddEvent,
   type Board,
   type CellWithValue,
-  type GameState,
   type Indexes,
-  type MoveEvent,
-} from "./logic";
+} from "./board";
 
 const CELL_SIZE = 100;
 const GAP = 10;
