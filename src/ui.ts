@@ -32,7 +32,7 @@ export function animationProgress(): Observable<number> {
   const easeInOutQuad = (t: number) =>
     t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
-  const duration = 200;
+  const duration = 150;
 
   return animationFrames().pipe(
     map(({ elapsed }) => elapsed / duration),
