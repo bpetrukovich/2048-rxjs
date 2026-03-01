@@ -1,3 +1,4 @@
+import { animationFrames, endWith, map, Observable, takeWhile } from "rxjs";
 import { cellIsEmpty, CELLS, type Board, type CellWithValue } from "./logic";
 
 const CELL_SIZE = 100;
@@ -15,6 +16,20 @@ type Coordinates = {
   x: number;
   y: number;
 };
+
+export function animationProgress(): Observable<number> {
+  const easeInOutQuad = (t: number) =>
+    t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+  const duration = 300;
+
+  return animationFrames().pipe(
+    map(({ elapsed }) => elapsed / duration),
+    takeWhile((t) => t < 1),
+    map((t) => easeInOutQuad(t)),
+    endWith(1),
+  );
+}
 
 export function renderBoard(board: Board, ctx: CanvasRenderingContext2D) {
   cleanBoard(board, ctx);
